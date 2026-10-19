@@ -31,17 +31,26 @@ export async function saveRecordLocally(recordData){
 
 export async function getPendingQueue() {
     const db = await initLocalDB();
+    const records = await db.getAll(STORE_NAME);
+    return records.filter((record) => record.sync_status !== 'synced');
+}
+
+export async function getAllRecords() {
+    const db = await initLocalDB();
     return await db.getAll(STORE_NAME);
 }
 
-export async function clearSyncedRecords(localIds) {
+export async function markSyncedRecords(localIds) {
     if ( !localIds || localIds.length === 0 ) return;
     
     const db = await initLocalDB();
     const tx = db.transaction(STORE_NAME, 'readwrite');
 
     for (const id of localIds) {
-        await tx.store.delete(id);
+        const record = await tx.store.get(id);
+        if (record) {
+            await tx.store.put({ ...record, sync_status: 'synced' });
+        }
     }
 
     await tx.done;

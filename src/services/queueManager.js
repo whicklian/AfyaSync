@@ -1,8 +1,10 @@
-import { getPendingQueue, clearSyncedRecords } from './db';
+import { getPendingQueue, markSyncedRecords } from './db';
 import { syncRecordsToSupabase } from './supabaseClient';
 
 let syncInProgress = false;
+let syncRequestedAgain = false;
 let lastSyncTimestamp = 0;
+let debounceTimer = null;
 const COOLDOWN_PERIOD = 5000; // 5 seconds cooldown between sync attempts
 
 export async function processSyncQueue() {
@@ -21,16 +23,16 @@ export async function processSyncQueue() {
     }
 
     syncInProgress = true;
-    let slastSyncTimestamp = now;
+    let syncedCount = 0;
+    lastSyncTimestamp = now;
 
     try {
-        while (syncRequestedAgain && navigator.onLine) {
+        do {
             syncRequestedAgain = false;
             const pendingRecords = await getPendingQueue();
 
             if (!pendingRecords?.length) {
-                if (syncRequestedAgain && navigator.onLine) continue;
-                return { synced: true, count: syncedCount, message: 'No pending records to sync.' };
+                break;
             }
 
             const result = await syncRecordsToSupabase(pendingRecords);
@@ -45,15 +47,17 @@ export async function processSyncQueue() {
             }
 
             const syncedIds = pendingRecords.map((record) => record.local_id);
-            await clearSyncedRecords(syncedIds);
+            await markSyncedRecords(syncedIds);
             syncedCount += syncedIds.length;
-        }
+        } while (syncRequestedAgain && navigator.onLine);
 
         return {
             synced: navigator.onLine,
             offline: !navigator.onLine,
             count: syncedCount,
-            message: navigator.onLine ? 'Records synced successfully.' : 'Device went offline during sync.',
+            message: syncedCount
+                ? navigator.onLine ? 'Records synced successfully.' : 'Device went offline during sync.'
+                : 'No pending records to sync.',
         };
     } finally {
         syncInProgress = false;

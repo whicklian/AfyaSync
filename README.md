@@ -1,7 +1,8 @@
 # AfyaSync
 
 AfyaSync is an offline-first community health visit app. Sign in to record visits,
-keep them in the local sync queue, and sync them to Supabase when online.
+keep them on this device, and sync them to Supabase when online. The visit history
+remains available on the device after sync.
 
 ## Run locally
 

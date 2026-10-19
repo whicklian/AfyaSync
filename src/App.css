@@ -402,6 +402,10 @@
   font-weight: 700;
 }
 
+.queue-item-status.synced {
+  color: var(--green-dark);
+}
+
 .queue-item-meta {
   justify-content: flex-start;
   margin-top: 7px;

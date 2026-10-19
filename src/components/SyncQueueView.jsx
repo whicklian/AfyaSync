@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getPendingQueue } from '../services/db';
+import { getAllRecords, getPendingQueue } from '../services/db';
 import { processSyncQueue } from '../services/queueManager';
 
 export default function SyncQueueView({ refreshTrigger }) {
@@ -14,15 +14,15 @@ export default function SyncQueueView({ refreshTrigger }) {
 
     const loadAndSync = async () => {
       try {
-        let items = await getPendingQueue();
+        let items = await getAllRecords();
         if (!active) return;
         setQueue(items);
         setError('');
 
-        if (navigator.onLine && items.length > 0) {
+        if (navigator.onLine && items.some((item) => item.sync_status !== 'synced')) {
           setSyncing(true);
           const result = await processSyncQueue();
-          items = await getPendingQueue();
+          items = await getAllRecords();
           if (!active) return;
           setQueue(items);
           if (result?.synced === false && !result.inProgress) {
@@ -66,9 +66,9 @@ export default function SyncQueueView({ refreshTrigger }) {
     <section className="panel queue-panel">
       <div className="panel-heading queue-heading">
         <div>
-          <h2 className="panel-title">Sync queue</h2>
+          <h2 className="panel-title">Visit history</h2>
           <p className="panel-description">
-            {syncing ? 'Sending visits securely to Supabase…' : 'Visits sync automatically when you’re online.'}
+            {syncing ? 'Sending visits securely to Supabase…' : 'Saved visits stay here after they sync.'}
           </p>
         </div>
         <span className="queue-count">{queue.length} {queue.length === 1 ? 'visit' : 'visits'}</span>
@@ -83,8 +83,8 @@ export default function SyncQueueView({ refreshTrigger }) {
               <path d="m5 12 4 4L19 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </span>
-          <strong>You’re all caught up</strong>
-          <span>New visits will appear here until they sync.</span>
+          <strong>No visits saved yet</strong>
+          <span>Visits you record will be kept here.</span>
         </div>
       ) : (
         <>
@@ -93,14 +93,20 @@ export default function SyncQueueView({ refreshTrigger }) {
               <article className="queue-item" key={item.local_id}>
                 <div className="queue-item-top">
                   <span className="queue-item-name">{item.patient_name}</span>
-                  <span className="queue-item-status">
-                    {syncing ? 'Syncing…' : navigator.onLine ? 'Waiting to sync' : 'Waiting for connection'}
+                  <span className={`queue-item-status${item.sync_status === 'synced' ? ' synced' : ''}`}>
+                    {item.sync_status === 'synced'
+                      ? 'Synced'
+                      : syncing
+                        ? 'Syncing…'
+                        : navigator.onLine ? 'Waiting to sync' : 'Waiting for connection'}
                   </span>
                 </div>
                 <div className="queue-item-meta">
                   <span>{item.village_name}</span>
                   <span aria-hidden="true">·</span>
                   <span>{item.visit_type} visit</span>
+                  <span aria-hidden="true">·</span>
+                  <time dateTime={item.created_at_local}>{new Date(item.created_at_local).toLocaleString()}</time>
                 </div>
               </article>
             ))}
