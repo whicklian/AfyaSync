@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getAllRecords, getPendingQueue } from '../services/db';
+import { getAllRecords } from '../services/db';
 import { processSyncQueue } from '../services/queueManager';
 
 export default function SyncQueueView({ refreshTrigger }) {

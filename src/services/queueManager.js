@@ -14,6 +14,7 @@ export async function processSyncQueue() {
     }
 
     if (syncInProgress) {
+        syncRequestedAgain = true;
         return { synced: false, inProgress: true, count: 0, message: 'Sync is already in progress.' };
     }
 

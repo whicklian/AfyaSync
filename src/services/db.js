@@ -37,11 +37,12 @@ export async function getPendingQueue() {
 
 export async function getAllRecords() {
     const db = await initLocalDB();
-    return await db.getAll(STORE_NAME);
+    const records = await db.getAll(STORE_NAME);
+    return records.sort((first, second) => second.created_at_local.localeCompare(first.created_at_local));
 }
 
 export async function markSyncedRecords(localIds) {
-    if ( !localIds || localIds.length === 0 ) return;
+    if (!localIds || localIds.length === 0) return;
     
     const db = await initLocalDB();
     const tx = db.transaction(STORE_NAME, 'readwrite');
